@@ -75,6 +75,13 @@ class WsHandler(WebSocketHandler, BaseMixin, ABC):
         """Returns a bearer token for the WebSocket handler"""
         return self._username
 
+    def update_user_info(self, user_info) -> None:
+        """ Replace BaseMixin.update_user_info() to avoid returning a cookie
+        :param user_info:
+        :return:
+        """
+        self._user_cache = user_info
+
     def check_origin(self, origin: str) -> bool:
         if not self._allowed_origins:
             logger.debug(f"Rejected origin: {origin}, no allowed origins configured")
