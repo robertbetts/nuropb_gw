@@ -1,4 +1,3 @@
-import json
 import logging
 from abc import ABC
 from typing import Sequence, Any
@@ -14,9 +13,7 @@ from nuropb_gw.handler_manager import HandlerManager
 logger = logging.getLogger(__name__)
 
 
-VALID_SESSION_REQUIRED = (
-    "A valid user authorisation is required before a WebSocket connection is established"
-)
+VALID_SESSION_REQUIRED = "A valid user authorisation is required before a WebSocket connection is established"
 
 
 class WsHandler(WebSocketHandler, BaseMixin, ABC):
@@ -36,6 +33,7 @@ class WsHandler(WebSocketHandler, BaseMixin, ABC):
     The bearer token pattern is easily extended to support other authentication methods
         such as API Keys, OpenID, OAuth2, or SAML.
     """
+
     _allowed_origins: Sequence[str]
     _handler_manager: HandlerManager
     _session_id: str
@@ -95,12 +93,6 @@ class WsHandler(WebSocketHandler, BaseMixin, ABC):
         logger.debug(f"Rejected origin {origin}")
         return False
 
-    def update_user_info(self, user_info) -> None:
-        """Overriding method from BaseMixin, as setting the session cookie is not supported
-        for WebSocket connections
-        """
-        self._user_cache = user_info
-
     async def open(self):
         """Called on a WebSocket connection opened event
 
@@ -123,7 +115,7 @@ class WsHandler(WebSocketHandler, BaseMixin, ABC):
         """
         logger.debug(
             "WebSocket opened, user_id: %s, session_id: %s",
-            *[self._user_id, self._session_id]
+            *[self._user_id, self._session_id],
         )
         hello_message = {
             "type": "event",
@@ -161,7 +153,7 @@ class WsHandler(WebSocketHandler, BaseMixin, ABC):
         except Exception as e:
             logger.debug(
                 "Error writing to WebSocket session_id: %s, user_id: %s : %s",
-                *[self._session_id, self._user_id, e]
+                *[self._session_id, self._user_id, e],
             )
 
     def on_close(self):
@@ -171,12 +163,11 @@ class WsHandler(WebSocketHandler, BaseMixin, ABC):
         self._handler_manager.unregister(self)
 
     def safe_close(self):
-        """ Idempotent close method, closes the WebSocket connection regardless of state
-        """
+        """Idempotent close method, closes the WebSocket connection regardless of state"""
         try:
             self.close()
         except Exception as e:
             logger.debug(
                 "Error closing WebSocket session_id: %s, user_id: %s : %s",
-                *[self._session_id, self._user_id, e]
+                *[self._session_id, self._user_id, e],
             )

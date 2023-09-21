@@ -32,11 +32,17 @@ class ServiceMeshManagerController:
     This is an implementation stub, and is intended to be extended by with
     implementation specific requirements
     """
+
     _service_name: str
     _instance_id: str
     _event_topic_subscriptions: List[str]
-    
-    def __init__(self, service_name: str, instance_id: str, event_topic_subscriptions: Optional[List[str]] = None):
+
+    def __init__(
+        self,
+        service_name: str,
+        instance_id: str,
+        event_topic_subscriptions: Optional[List[str]] = None,
+    ):
         self._service_name = service_name
         self._instance_id = instance_id
         self._event_topic_subscriptions = event_topic_subscriptions or []
@@ -53,7 +59,9 @@ class ServiceMeshManagerController:
     def event_topic_subscriptions(self) -> List[str]:
         return self._event_topic_subscriptions
 
-    def _handle_event_(self, topic: str, event: Any, context: Optional[Dict[str, Any]]) -> None:
+    def _handle_event_(
+        self, topic: str, event: Any, context: Optional[Dict[str, Any]]
+    ) -> None:
         """This method is called from Service Mesh API when an event is received
         :param topic:
         :param event:
@@ -73,17 +81,18 @@ class ServiceMeshManager:
       transport layer and broker. NOT any on-behalf-of authorisation for handler
       connections.
     """
+
     _service_controller: ServiceMeshManagerController
     _sm_api: RMQAPI
     _handler_manager: HandlerManager
 
     def __init__(
-            self,
-            service_name: str,
-            instance_id: str,
-            amqp_url: str,
-            handler_manager: HandlerManager,
-            service_controller: ServiceMeshManagerController | None = None
+        self,
+        service_name: str,
+        instance_id: str,
+        amqp_url: str,
+        handler_manager: HandlerManager,
+        service_controller: ServiceMeshManagerController | None = None,
     ):
         self._running_future = None
         self._service_controller = service_controller or ServiceMeshManagerController(
@@ -99,18 +108,19 @@ class ServiceMeshManager:
                 "event_bindings": self._service_controller.event_topic_subscriptions,
                 "prefetch_count": 1,
                 "default_ttl": 60 * 60 * 1000,  # 1 hour
-            }
+            },
         )
         self._handler_manager = handler_manager
-        self._handler_manager._on_handler_message_received = self._on_handler_message_received
+        self._handler_manager._on_handler_message_received = (
+            self._on_handler_message_received
+        )
 
     @property
     def connected(self) -> bool:
         return self._sm_api.connected
 
     def connect(self) -> None:
-
-        def done(future):
+        def done(_future):
             logger.debug("Service Mesh Manager connected")
 
         task = asyncio.create_task(self._sm_api.connect())
@@ -119,7 +129,9 @@ class ServiceMeshManager:
     def disconnect(self) -> None:
         asyncio.create_task(self._sm_api.disconnect())
 
-    async def handle_request(self,  handler_response_cb, handler, payload: Dict[str, any]) -> None:
+    async def handle_request(
+        self, handler_response_cb, handler, payload: Dict[str, any]
+    ) -> None:
         """This method is called from HandlerManager when a message is received from a handler.
         :param handler_response_cb:
         :param handler:
@@ -151,7 +163,7 @@ class ServiceMeshManager:
                     "trace_id": trace_id,
                     "result": result["result"],
                     "error": result["error"],
-                }
+                },
             }
             await handler_response_cb(handler, response)
 
@@ -162,15 +174,19 @@ class ServiceMeshManager:
                     "trace_id": trace_id,
                     "result": None,
                     "error": result["error"],
-                }
+                },
             }
             await handler_response_cb(handler, response)
 
         else:
-            logger.error("Service Mesh Manager received unexpected response: %s", result)
+            logger.error(
+                "Service Mesh Manager received unexpected response: %s", result
+            )
 
-    async def _on_handler_message_received(self, handler_response_cb, handler, message: Any):
-        """ This method is injected into the Handler Service Manager and called from
+    async def _on_handler_message_received(
+        self, handler_response_cb, handler, message: Any
+    ):
+        """This method is injected into the Handler Service Manager and called from
         the HandlerManager when a message is received from a handler.
 
         The handler_response_cb is executed in the HandlerManager and has (handler, message)
@@ -179,7 +195,7 @@ class ServiceMeshManager:
         :param handler_response_cb:
         :param handler:
         :param message:
-        :return: 
+        :return:
         """
         logger.debug(
             "Received a message from handler session_id %s, user_id: %s",
@@ -197,6 +213,9 @@ class ServiceMeshManager:
             await self.handle_request(
                 handler_response_cb=handler_response_cb,
                 handler=handler,
-                payload=payload)
+                payload=payload,
+            )
         else:
-            logger.error("Service Mesh Manager received unexpected response: %s", payload)
+            logger.error(
+                "Service Mesh Manager received unexpected response: %s", payload
+            )

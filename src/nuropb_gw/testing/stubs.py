@@ -11,11 +11,15 @@ from tornado.platform.asyncio import to_asyncio_future
 
 from nuropb_gw.handler_manager import HandlerManager
 from nuropb_gw.handlers.ws_handler import WsHandler
-from nuropb_gw.service_mesh_manager import ServiceMeshManager, ServiceMeshManagerController
+from nuropb_gw.service_mesh_manager import (
+    ServiceMeshManager,
+    ServiceMeshManagerController,
+)
 
 logger = logging.getLogger(__name__)
 try:
     from faker import Faker
+
     faker = Faker()
 except Exception as err:  # pragma: no cover
     _ = err
@@ -57,10 +61,7 @@ def authorise_from_token(token) -> Optional[Dict[str, Any]]:
 
 
 def websocket_server(service_name: str, instance_id: str, amqp_url: str) -> Application:
-    handler_manager = HandlerManager(
-        service_name=service_name,
-        instance_id=instance_id
-    )
+    handler_manager = HandlerManager(service_name=service_name, instance_id=instance_id)
     service_mesh_controller = ServiceMeshManagerController(
         service_name=service_name,
         instance_id=instance_id,
@@ -84,7 +85,9 @@ def websocket_server(service_name: str, instance_id: str, amqp_url: str) -> Appl
         "authorise_from_token": authorise_from_token,
         "handler_manager": handler_manager,
         "service_mesh_manager": service_mesh_manager,
-        "allowed_origins": ["*"],  # "*" allows all, rule is "ends_with" value in list ["localhost"],
+        "allowed_origins": [
+            "*"
+        ],  # "*" allows all, rule is "ends_with" value in list ["localhost"],
     }
 
     application = Application(
@@ -96,9 +99,10 @@ def websocket_server(service_name: str, instance_id: str, amqp_url: str) -> Appl
     return application
 
 
-async def websocket_client(ws_url, headers={}, cookies={}):
-    """Returns an asynchronous websocket client and instantiates a websocket server
-    """
+async def websocket_client(ws_url, headers=None, cookies=None):
+    """Returns an asynchronous websocket client and instantiates a websocket server"""
+    headers = {} if headers is None else headers
+    cookies = {} if cookies is None else cookies
     params = {
         "url": ws_url,
         "headers": {
@@ -114,5 +118,6 @@ async def read_ws_message(conn) -> Any:
     try:
         msg = conn.read_queue.get_nowait()
     except QueueEmpty as e:
+        _ = e
         msg = await to_asyncio_future(conn.read_message())
     return msg

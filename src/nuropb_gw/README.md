@@ -61,6 +61,9 @@ is plenty of scope for other passwordless authentication mechanisms.
 
 On ServiceMeshManager instantiation, and instance of the HandlerManager is passed in.
 ```python
+from nuropb_gw.handler_manager import HandlerManager
+from nuropb_gw.service_mesh_manager import ServiceMeshManager
+
 handler_manager = HandlerManager(
     ...
 )

@@ -27,8 +27,7 @@ def strip_bearer_token(bearer_token: str | None) -> str | None:
 
 
 class AuthenticateMixin(RequestHandler):
-    """Mixin for authenticating handler instances
-    """
+    """Mixin for authenticating handler instances"""
 
     _user_cache: Optional[Dict[str, Any]]
     """_user_cache is for convenience, avoiding potentially expensive calls validating 
@@ -53,9 +52,15 @@ class AuthenticateMixin(RequestHandler):
             "allow_authorisation_cookie"
         ]
         time_out = self.settings["authentication_timeout"]
-        self._authentication_timeout = None if (isinstance(time_out, int) and time_out < 1) else time_out
-        self._authorise_header_name = self.settings.get("authorise_header_name", "Authorization")
-        self._authorise_cookie_name = self.settings.get("authorise_cookie_name", "Authorization")
+        self._authentication_timeout = (
+            None if (isinstance(time_out, int) and time_out < 1) else time_out
+        )
+        self._authorise_header_name = self.settings.get(
+            "authorise_header_name", "Authorization"
+        )
+        self._authorise_cookie_name = self.settings.get(
+            "authorise_cookie_name", "Authorization"
+        )
         self._authorise_from_token = self.settings.get("authorise_from_token", None)
         self._user_cache = None
 
@@ -70,7 +75,7 @@ class AuthenticateMixin(RequestHandler):
     def get_user_information_from_bearer_token(
         self, bearer_token: str
     ) -> Optional[Dict[str, Any]]:
-        """ Gets user information from a bearer token, update this method as per your
+        """Gets user information from a bearer token, update this method as per your
         authentication pattern.
 
         If a token is revoked or has expired, it is expected that self._authorise_from_token(bearer_token)
@@ -86,11 +91,13 @@ class AuthenticateMixin(RequestHandler):
             user_info = self._authorise_from_token(bearer_token)
             return user_info
         else:  # pragma: no cover
-            logging.debug("Bearer token present, however authorise_from_token() was not configured.")
+            logging.debug(
+                "Bearer token present, however authorise_from_token() was not configured."
+            )
             return None
 
     def has_authorisation_expired(self) -> bool:
-        """ This function declaration is here for reference only and represents an abstraction for
+        """This function declaration is here for reference only and represents an abstraction for
         determining if a users authorisation has expired, and available for customization
         dependent on derivative implementations specific needs.
 
@@ -116,15 +123,21 @@ class AuthenticateMixin(RequestHandler):
         return False
 
     def _process_user_info(self, user_info, message):
-        """ utility method to reduce complexity from self.get_current_user()
+        """utility method to reduce complexity from self.get_current_user()
         :param user_info:
         :param message:
         :return:
         """
+        _ = message
         if user_info and not self.has_authorisation_expired():
-            user_info["last_activity"] = f"{datetime.datetime.now(datetime.timezone.utc).isoformat()}Z"
+            user_info[
+                "last_activity"
+            ] = f"{datetime.datetime.now(datetime.timezone.utc).isoformat()}Z"
             self.update_user_info(user_info=user_info)
         return user_info
+
+    def update_user_info(self, user_info) -> None:
+        self._user_cache = user_info
 
     def get_current_user(self) -> Optional[Dict[str, Any]]:
         """Returns the minimum user information from the session cookie or Authorisation cookie (bearer token)
@@ -159,16 +172,18 @@ class AuthenticateMixin(RequestHandler):
             bearer_token = self.request.headers.get(self._authorise_header_name, None)
             user_info = self._process_user_info(
                 user_info=self.get_user_information_from_bearer_token(bearer_token),
-                message=f"Authenticated from Authentication header: {bearer_token}"
+                message=f"Authenticated from Authentication header: {bearer_token}",
             )
 
         if user_info is None and self.request.method in ("GET", "HEAD"):
             # First check for cookie Authorization token
             if self._authorise_cookie_name:
-                bearer_token = self.get_cookie(self._authorise_cookie_name, default=None)
+                bearer_token = self.get_cookie(
+                    self._authorise_cookie_name, default=None
+                )
                 user_info = self._process_user_info(
                     user_info=self.get_user_information_from_bearer_token(bearer_token),
-                    message=f"Authenticated from Authentication cookie: {bearer_token}"
+                    message=f"Authenticated from Authentication cookie: {bearer_token}",
                 )
 
             if user_info is None:
@@ -178,7 +193,7 @@ class AuthenticateMixin(RequestHandler):
                 try:
                     user_info = self._process_user_info(
                         user_info=tornado.escape.json_decode(user_cookie),
-                        message=f"Authenticated from session cookie: {session_cookie_name}"
+                        message=f"Authenticated from session cookie: {session_cookie_name}",
                     )
                 except Exception as err:  # pylint: disable=broad-except
                     _ = err
@@ -187,14 +202,11 @@ class AuthenticateMixin(RequestHandler):
         return user_info
 
 
-
-
 class BaseMixin(AuthenticateMixin):
     """Base class for all handlers and extends the AuthenticateMixin
     providing authentication and authorisation methods.
     """
 
     def initialize(self, **kwargs):
-        """ Initialize the handler and inherit the AuthenticateMixin initialize settings
-        """
+        """Initialize the handler and inherit the AuthenticateMixin initialize settings"""
         AuthenticateMixin.initialize(self, **kwargs)

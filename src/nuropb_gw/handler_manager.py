@@ -25,6 +25,7 @@ class HandlerManager:
     reason for a user_id to session_id mapping, this allows directed user
     communications to span all their connections.
     """
+
     _service_name: str
     _instance_id: str
     _session_id_to_handler: Dict[str, "Handler"]
@@ -39,10 +40,10 @@ class HandlerManager:
     _max_concurrent_connections: int
 
     def __init__(
-            self,
-            service_name: str,
-            instance_id: str,
-            on_handler_message_received: Optional[Callable[[..., Any], Any]] = None
+        self,
+        service_name: str,
+        instance_id: str,
+        on_handler_message_received: Optional[Callable[[..., Any], Any]] = None,
     ):
         self._service_name = service_name
         self._instance_id = instance_id
@@ -53,7 +54,7 @@ class HandlerManager:
         self._max_concurrent_connections = 0
 
     async def on_handler_message(self, handler, message: str) -> None:
-        """ Called from a handler, when new message received over the handler's connection.
+        """Called from a handler, when new message received over the handler's connection.
 
         *NOTE* a response from a self._on_handler_message_received call (below) is awaited.
         Messages received from the handler are not queued, and are processed in order. However,
@@ -78,20 +79,24 @@ class HandlerManager:
         if self._on_handler_message_received:
             try:
                 msg_dict = json.loads(message)
-                await self._on_handler_message_received(self.to_handler_message, handler, msg_dict)
+                await self._on_handler_message_received(
+                    self.to_handler_message, handler, msg_dict
+                )
             except Exception as e:
-                logger.error("Error decoding JSON, error: %s",  e)
-                logger.debug("Error decoding JSON, message: %s",  message)
+                logger.error("Error decoding JSON, error: %s", e)
+                logger.debug("Error decoding JSON, message: %s", message)
                 message = {
                     "error": type(e).__name__,
                     "description": f"Error decoding JSON: {e}",
                 }
                 await self.to_handler_message(handler, message)
         else:  # pragma: no cover
-            raise RuntimeError("on_handler_message_received callback has not been configured")
+            raise RuntimeError(
+                "on_handler_message_received callback has not been configured"
+            )
 
     async def to_handler_message(self, handler, message) -> None:
-        """ Sends a service mesh message to the handler. This method is passed as a
+        """Sends a service mesh message to the handler. This method is passed as a
         callback to the service mesh manager.
 
         JSON encoding is handled directly by the handler,
@@ -102,32 +107,35 @@ class HandlerManager:
         :return:
         """
         _ = self
-        logger.debug("Service mesh response for session_id: %s, user_id: %s",
-                     *[handler.session_id, handler.user_id])
+        logger.debug(
+            "Service mesh response for session_id: %s, user_id: %s",
+            *[handler.session_id, handler.user_id],
+        )
         logger.debug("Message: %s", message)
         await handler.write_message(message)
 
     def get_handler(self, session_id: str) -> Optional["Handler"]:
-        """Returns a handler from session id, None if not found
-        """
+        """Returns a handler from session id, None if not found"""
         return self._session_id_to_handler.get(session_id, None)
 
     def register(self, handler: "Handler") -> None:
-        """Registers a handler
-        """
+        """Registers a handler"""
         self._session_id_to_handler[handler.session_id] = handler
         sessions = self._user_id_to_session_ids.setdefault(handler.user_id, set())
         sessions.add(handler.session_id)
         self._user_id_to_session_ids[handler.user_id] = sessions
-        logger.debug(f"Registered WebSocket handler: session_id: {handler.session_id}, user_id: {handler.user_id}")
+        logger.debug(
+            f"Registered WebSocket handler: session_id: {handler.session_id}, user_id: {handler.user_id}"
+        )
         connections = len(self._session_id_to_handler)
         if connections > self._max_concurrent_connections:
             self._max_concurrent_connections = connections
-            logger.critical(f"Highest concurrent connections: reached {self._max_concurrent_connections}")
+            logger.critical(
+                f"Highest concurrent connections: reached {self._max_concurrent_connections}"
+            )
 
     def unregister(self, handler: "Handler") -> None:
-        """Unregisters a handler
-        """
+        """Unregisters a handler"""
         if handler.session_id in self._session_id_to_handler:
             del self._session_id_to_handler[handler.session_id]
         user_info = handler.get_current_user()
@@ -140,8 +148,7 @@ class HandlerManager:
                 self._user_id_to_session_ids[user_info["user_id"]] = sessions
 
     async def send_message(self, session_id: str, message: str) -> None:
-        """Sends the message to the handler
-        """
+        """Sends the message to the handler"""
         if session_id in self._session_id_to_handler:
             await self._session_id_to_handler[session_id].write_message(message)
 
@@ -167,8 +174,7 @@ class HandlerManager:
         logger.debug("Sending message completed to user ids: %s", user_ids)
 
     async def send_message_to_all(self, message: str):
-        """Sends the message to all handlers
-        """
+        """Sends the message to all handlers"""
         _ = [
             await handler.write_message(message)
             for handler in self._session_id_to_handler.values()
@@ -176,8 +182,7 @@ class HandlerManager:
         logger.debug("Sending message completed to all")
 
     def close(self, session_id: str):
-        """Close a handler
-        """
+        """Close a handler"""
         if session_id in self._session_id_to_handler:
             try:
                 self._session_id_to_handler[session_id].close()
@@ -189,8 +194,7 @@ class HandlerManager:
         logger.debug(f"Closed handler for session_id: {session_id}")
 
     def close_user_ids(self, user_ids: List[str]):
-        """Close a handlers for all user_ids provided
-        """
+        """Close a handlers for all user_ids provided"""
         handlers: Set["Handler"] = set()
 
         def flatten(session_ids) -> None:
@@ -208,7 +212,6 @@ class HandlerManager:
         logger.debug("Closed handlers for all user_ids: %s", user_ids)
 
     def close_all(self):
-        """Close all handlers
-        """
+        """Close all handlers"""
         _ = [handler.close() for handler in self._session_id_to_handler.values()]
         logger.debug("Close all handlers completed")
