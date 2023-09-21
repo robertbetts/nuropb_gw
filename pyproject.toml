@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "nuropb_gw"
-version = "0.1.1"
+version = "0.1.2"
 description = "Websocket gateway library for Nuropb Service Mesh"
 authors = ["Robert Betts <robert.betts@genoa.io>"]
 readme = "README.md"
@@ -9,6 +9,7 @@ homepage = "https://github.com/robertbetts/command"
 repository = "https://github.com/robertbetts/command"
 keywords = ["python", "asynchrous", "api", "event", "rpc", "distributed", "websockets", "sevice-mesh"]
 classifiers = [
+    "License :: OSI Approved :: Apache Software License",
     'Programming Language :: Python :: 3.11',
     'Programming Language :: Python :: 3.10',
     'Operating System :: OS Independent'
