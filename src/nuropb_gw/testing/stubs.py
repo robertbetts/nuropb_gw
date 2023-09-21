@@ -10,6 +10,7 @@ from tornado.queues import QueueEmpty
 from tornado.platform.asyncio import to_asyncio_future
 
 from nuropb_gw.handler_manager import HandlerManager
+from nuropb_gw.handlers.base_handler import BaseMixin, requires_authorization
 from nuropb_gw.handlers.ws_handler import WsHandler
 from nuropb_gw.service_mesh_manager import (
     ServiceMeshManager,
@@ -31,6 +32,29 @@ TEST_AUTH_TOKENS = ["accesstokentest1", "accesstokentest2", "accesstokentest3"]
 
 _test_token_cache: Dict[str, Any] = {}
 _test_user_id_cache: Dict[str, Any] = {}
+
+
+class PublicHandler(BaseMixin):
+    _default_page: str
+
+    def initialize(self, **kwargs) -> None:
+        BaseMixin.initialize(self, **kwargs)
+
+    async def get(self):
+        user_info = self.current_user
+        _username = "Anonymous" if not user_info else user_info["username"]
+        self.write("Hello World")
+
+
+class PrivateHandler(PublicHandler):
+    def initialize(self, **kwargs) -> None:
+        PublicHandler.initialize(self, **kwargs)
+
+    @requires_authorization
+    async def get(self):
+        user_info = self.current_user
+        _username = user_info["username"]
+        self.write("Private Hello world")
 
 
 def create_test_user_info(token: str) -> Dict[str, Any]:
@@ -60,7 +84,7 @@ def authorise_from_token(token) -> Optional[Dict[str, Any]]:
         return _test_token_cache[token]
 
 
-def websocket_server(service_name: str, instance_id: str, amqp_url: str) -> Application:
+def gateway_server(service_name: str, instance_id: str, amqp_url: str) -> Application:
     handler_manager = HandlerManager(service_name=service_name, instance_id=instance_id)
     service_mesh_controller = ServiceMeshManagerController(
         service_name=service_name,
@@ -93,6 +117,8 @@ def websocket_server(service_name: str, instance_id: str, amqp_url: str) -> Appl
     application = Application(
         handlers=[
             url(r"/websocket", WsHandler, name="websocket_handler"),
+            url(r"/private", PrivateHandler, name="private_handler"),
+            url(r"/", PublicHandler, name="public_handler"),
         ],
         **application_settings,
     )

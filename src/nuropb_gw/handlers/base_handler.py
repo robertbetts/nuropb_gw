@@ -1,9 +1,12 @@
 import logging
-from typing import Callable, Optional, Dict, Any
+from typing import Callable, Optional, Dict, Any, Awaitable
 import datetime
+import functools
 
 from tornado.web import RequestHandler
+from tornado.web import HTTPError
 import tornado.escape
+from nuropb.encodings.json_serialisation import to_json_compatible
 
 logger = logging.getLogger(__name__)
 
@@ -26,12 +29,42 @@ def strip_bearer_token(bearer_token: str | None) -> str | None:
     return bearer_token
 
 
+def requires_authorization(
+        method: Callable[..., Optional[Awaitable[None]]]
+) -> Callable[..., Optional[Awaitable[None]]]:
+    """ A decorator for Handler methods that require a user authorization.
+    * SSO by session cookie is only allowed with GET or HEAD HTTP requests.
+    * Sessions are unique per device and SameSite cookie rules apply
+    * Authorization Header, Authorization cookie, and session cookie are
+      supported in that order.
+    """
+
+    @functools.wraps(method)
+    def wrapper(  # type: ignore
+            self: "BaseMixin", *args, **kwargs
+    ) -> Optional[Awaitable[None]]:
+        user_info = self.get_current_user()
+        if not user_info:
+            if self.request.method in ("GET", "HEAD") and self.application.settings.get("login_url", None):
+                self.redirect(self.application.settings["login_url"])
+            else:
+                raise HTTPError(
+                    status_code=401,
+                    log_message="Unable to authorize",
+                )
+            return
+        return method(self, *args, **kwargs)
+
+    return wrapper
+
+
 class AuthenticateMixin(RequestHandler):
     """Mixin for authenticating handler instances"""
 
     _user_cache: Optional[Dict[str, Any]]
     """_user_cache is for convenience, avoiding potentially expensive calls validating 
     Authorization tokens and or retrieving cached session information.
+    *NOTE* : This exists only for a single request, and is not shared between requests.
     """
     _allow_authorisation_cookie: bool
     _authentication_timeout: int | None
@@ -45,6 +78,9 @@ class AuthenticateMixin(RequestHandler):
     def initialize(self, **kwargs) -> None:
         self.require_setting("session_cookie_name", "user session tracking cookie name")
         self.require_setting("cookie_secret", "secret for encoding secure cookies")
+
+        """This is only used when setting the session cookie expiry time.
+        """
         self.require_setting(
             "authentication_timeout", "number of minutes before authentication expires"
         )
@@ -136,8 +172,24 @@ class AuthenticateMixin(RequestHandler):
             self.update_user_info(user_info=user_info)
         return user_info
 
-    def update_user_info(self, user_info) -> None:
+    def update_user_info(self, user_info):
+        """ self._user_cache is for convenience to avoid potentially having to
+        make expensive calls validating Authorization token and or retrieving
+        session information.
+        """
+        session_cookie_name = self.application.settings["session_cookie_name"]
+        user_info["last_activity"] = f"{datetime.datetime.utcnow().isoformat()}Z"
         self._user_cache = user_info
+        data = to_json_compatible(user_info)
+        if self._authentication_timeout is None or self._authentication_timeout < 1:
+            expiry_days = None
+        else:
+            expiry_days = self._authentication_timeout / (60 * 24)
+        self.set_signed_cookie(
+            name=session_cookie_name,
+            value=tornado.escape.json_encode(data),
+            expires_days=expiry_days,
+        )
 
     def get_current_user(self) -> Optional[Dict[str, Any]]:
         """Returns the minimum user information from the session cookie or Authorisation cookie (bearer token)

@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "nuropb_gw"
-version = "0.1.3"
+version = "0.1.4"
 description = "Websocket gateway library for Nuropb Service Mesh"
 authors = ["Robert Betts <robert.betts@genoa.io>"]
 readme = "README.md"
