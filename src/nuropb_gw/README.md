@@ -1,10 +1,5 @@
 # TCP(WebSocket) Service Mesh Gateway
 
-Library for providing a TCP(WebSocket) gateway to the Nuropb service mesh. The
-Library leverages the Tornado asynchronous networking framework, and can 
-also be used as a template for other TCP connection handlers. In addition, it
-can also be used as pattern to implement a WebSocket BFF (Backend For Frontend).
-
 There are two primary classes that interact together in providing `consumer` access
 to the services hosted on the Service Mesh. It's always tricky how to coordinate the 
 dependencies between classes, especially when there are bidirectional flows and 
