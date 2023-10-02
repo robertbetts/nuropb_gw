@@ -4,12 +4,11 @@ from uuid import uuid4
 
 import tornado
 import tornado.httpserver
-from tornado.netutil import bind_sockets
 import tornado.testing
 import tornado.httpclient
 import tornado.websocket
 
-from nuropb_gw.testing.stubs import websocket_server
+from nuropb_gw.testing.stubs import gateway_server
 
 logger = logging.getLogger(__name__)
 
@@ -19,7 +18,7 @@ websocket_port = 9080
 
 
 async def main():
-    app = websocket_server(
+    app = gateway_server(
         service_name="test-ws-service",
         instance_id=uuid4().hex,
         amqp_url=amqp_url,
@@ -35,8 +34,14 @@ async def main():
         server.stop()
         return
 
-    await asyncio.Event().wait()
-    logger.info("Shutting down")
+    try:
+        await asyncio.Event().wait()
+        logger.info("Shutting down")
+    except BaseException as err:
+        logger.info("Shutting down. %s: %a", type(err).__name__, str(err))
+
+    smm.disconnect()
+    await asyncio.sleep(0.1)
     server.stop()
     if hasattr(server, 'close_all_connections'):
         await server.close_all_connections()

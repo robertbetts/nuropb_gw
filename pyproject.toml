@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "nuropb_gw"
+name = "nuropb-gw"
 version = "0.1.4"
 description = "Websocket gateway library for Nuropb Service Mesh"
 authors = ["Robert Betts <robert.betts@genoa.io>"]
@@ -17,6 +17,9 @@ classifiers = [
 packages = [
     {include = "nuropb_gw", from = "src"},
 ]
+
+[tool.poetry.extras]
+docs = ["sphinx", "sphinx_rtd_theme"]
 
 [tool.poetry.scripts]
 
@@ -40,6 +43,24 @@ pytest-tornado = "^0.8.1"
 Faker = "^18.13.0"
 freezegun = "^1.2.2"
 
+[tool.poetry.group.docs]
+optional = true
+
+[tool.poetry.group.docs.dependencies]
+myst-parser = "^2.0.0"
+sphinx = "^7.2.6"
+sphinx-rtd-theme = "^1.3.0"
+readthedocs-sphinx-search = "^0.3.1"
+sphinx-autobuild = "^2021.3.14"
+nbsphinx = "^0.9.3"
+sphinx-autoapi = "^3.0.0"
+sphinxext-opengraph = "^0.8.2"
+sphinxcontrib-spelling = "^8.0.0"
+sphinx-copybutton = "^0.5.2"
+sphinx-autodoc2 = "^0.4.2"
+astroid = "<=2.15.8"
+graphviz = "^0.20.1"
+diagrams = "^0.23.3"
 
 [build-system]
 requires = ["poetry-core"]
