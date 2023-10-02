@@ -1,7 +1,7 @@
 # NuroPb Gateway
 
-Library providing a TCP(WebSocket) gateway to the Nuropb service mesh. The
-Library leverages the [Tornado](https://tornadoweb.org) asynchronous networking 
+A library providing a WebSocket(TCP) gateway for the Nuropb service mesh. The
+library leverages the [Tornado](https://tornadoweb.org) asynchronous networking 
 framework, which can also be used as a template for other TCP connection handlers. 
 
 Consumers are applications and services external to the service mesh, and 
@@ -14,14 +14,14 @@ the gateway to services hosted on the Mesh:
 * **ServiceMeshManager** which proxies flow between the handlers and the mesh.
 
 ```{note}
-There's a one-to-one relationship between the
-HandlerManager and ServiceMeshManager. The design requires that for each handler
-type, there's a dedicated HandlerManager and by inference, a dedicated
-ServiceMeshManager with its own connection to the service mesh.
+There's a one-to-one relationship between the HandlerManager and 
+ServiceMeshManager. The design requires that for each handler type, there's a 
+dedicated HandlerManager and by inference, a dedicated ServiceMeshManager 
+with its own connection to the service mesh.
 ```
 
 ## HandlerManager
-The HandlerManager is responsible for TCP(WebSocket) connection handlers, and does 
+The HandlerManager is responsible for WebSocket connection handlers, and does 
 the following:
 * Registers handlers for incoming connections
 * Unregistering handlers for closed connections

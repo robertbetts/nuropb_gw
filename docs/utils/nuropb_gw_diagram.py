@@ -19,9 +19,7 @@ with (Diagram(direction="LR")):
         service_a >> broker << service_b
         gw >> Edge(color="darkgreen") << broker << service_c
 
-    with Cluster("Application Consumers", direction="TB"):
+    with Cluster("NuroPb Consumers", direction="TB"):
         [Python("AI/ML/Jupyter"), Spring("Applications"), React("End Users")] >> gw
 
-    with Cluster("Direct Broker Consumers", direction="TB"):
-        broker << Python("NuroPb Consumer")
 
