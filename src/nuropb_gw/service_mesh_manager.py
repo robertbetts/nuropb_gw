@@ -116,6 +116,10 @@ class ServiceMeshManager:
         )
 
     @property
+    def sm_api(self) -> RMQAPI:
+        return self._sm_api
+
+    @property
     def connected(self) -> bool:
         return self._sm_api.connected
 
